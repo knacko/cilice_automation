@@ -1,4 +1,5 @@
 #include <AccelStepper.h>
+#include <EasyButton.h>
 
 // Define the pins
 const int dirPin  = 2;
@@ -21,35 +22,52 @@ const float endPos   = -270   // This should correspond to the outside pin being
 // Define motor interface
 AccelStepper stepper(1, stepPin, dirPin);
 
+// Setup the buttons
+EasyButton forwButton(forwPin);
+EasyButton revButton(revPin);
+EasyButton stopButton(stopPin);
+
 void setup() {
-  pinMode(forwPin, INPUT_PULLUP);     // Triggers LOW when pressed
-  pinMode(revPin,  INPUT_PULLUP);
-  pinMode(stopPin, INPUT_PULLUP);
+
+  // Setup the stepper
   stepper.disableOutputs();           // Initial state is unpowered
   stepper.setMaxSpeed(maxSpeed);
   stepper.setAcceleration(maxAccel);
   bool zeroSet = false                // Becomes true once the initial position is set via the stop button
+
+  // Initialize the buttons and set callbacks
+  forwButton.begin();
+  revButton.begin();
+  stopButton.begin();
+  forwButton.onPressed(onForward);
+  revButton.onPressed(onReverse);
+  stopButton.onPressed(onStop);
 }
 
 void loop() {
-  if (digitalRead(revPin) == LOW) {
-    if (zeroSet) rotateDegrees(startPos); }
+  // Poll the buttons
+  forwButton.read();
+  revButton.read();
+  stopButton.read();
+}
 
-  if (digitalRead(forwPin) == LOW) {
-    if (zeroSet) rotateDegrees(endPos); }
+void onForward() {
+  if (zeroSet) rotateDegrees(endPos); } // Start the bend
 
-  if (digitalRead(stopPin) == LOW) {
-    if (!zeroSet) {
-      stepper.setCurrentPosition(0);
-      stepper.enableOutputs();
-      zeroSet = true;
-    } else {
-      stepper.stop();
-      while (stepper.distanceToGo() != 0) {
-        stepper.run(); }
-      stepper.disableOutputs();
-      zeroSet = false;
-    }
+void onReverse() {
+  if (zeroSet) rotateDegrees(startPos); } // Return to the original pos
+
+void onStop() {
+  if (!zeroSet) { // Sets the zero/home position
+    stepper.setCurrentPosition(0);
+    stepper.enableOutputs();
+    zeroSet = true;
+  } else { // Stops the motor ASAP and disables the steppers
+    stepper.stop();
+    while (stepper.distanceToGo() != 0) {
+      stepper.run(); }
+    stepper.disableOutputs();
+    zeroSet = false;
   }
 }
 
