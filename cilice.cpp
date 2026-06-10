@@ -1,63 +1,58 @@
 #include <AccelStepper.h>
 
 // Define the pins
-const int dirPin = 2;
+const int dirPin  = 2;
 const int stepPin = 3;
-const int forwardPin = 4;
-const int reversePin = 5;
+const int forwPin = 4;
+const int revPin  = 5;
 const int stopPin = 6;
 
 // Set the steps
 const float stepsPerRev = 200.0;
-const float degPerStep = 360.0;
+const float gearRatio   = 4;                  // Ratio of the gearbox (e.g, 4 if 4:1 gearbox is used)
+const float maxRPM      = 100;                // RPM with maximum torque for motor
+const float maxSpeed    = maxRPM*stepsPerRev;
+const float maxAccel    = maxSpeed/2;
 
 // Set the positions
-const float startPos = 0
-const float endPos = -270*degPerStep
+const float startPos = 0    // This should correspond to the outside pin being center-right of the middle pin
+const float endPos   = -270   // This should correspond to the outside pin being center-bottom of the middle pin
 
 // Define motor interface type (1 for External Driver like A4988/DRV8825)
 AccelStepper stepper(1, stepPin, dirPin);
 
 void setup() {
-  pinMode(forwardPin, INPUT_PULLUP); // Button to GND, triggers LOW when pressed
-  pinMode(reversePin, INPUT_PULLUP);
-  stepper.setMaxSpeed(1000);
-  stepper.setAcceleration(500);
+  pinMode(forwPin, INPUT_PULLUP); // Button to GND, triggers LOW when pressed
+  pinMode(revPin,  INPUT_PULLUP);
+  pinMode(stopPin, INPUT_PULLUP);
+  stepper.setMaxSpeed(maxSpeed);
+  stepper.setAcceleration(maxAccel);
   bool zeroSet = false
 }
 
 void loop() {
-  // If the zero button is pressed
-  if (digitalRead(reversePin) == LOW) {
-  
-	if (!zeroSet) {
-		stepper.setCurrentPosition(0);
-	} else {
-		stepper.runToNewPosition(0); 
-	}
-	
-    // Step 1: Move the motor backward until the switch is hit
-    // (Adjust speed/direction depending on your switch placement)
-    while (digitalRead(buttonPin) == LOW) {
-      stepper.setSpeed(-200); // Move CCW slowly
-      stepper.runSpeed();
-    }
-    
-    // Step 2: Once switch is released, motor stops
-    stepper.stop();
-    
-    // Step 3: Crucial step - define this exact location as zero
-    stepper.setCurrentPosition(0);
-  }
+  if (digitalRead(revPin) == LOW)   
+    if (zeroSet) 
+      rotateDegrees(startPos)
 
-  // Continuously run stepper routines when needed
-  stepper.run();
+  if (digitalRead(forwPin) == LOW) 
+    if (zeroSet)
+      rotateDegrees(endPos);
+
+  if (digitalRead(stopPin) == LOW) 
+    stepper.stop();
+    while (stepper.distanceToGo() != 0)
+      stepper.run();
+    delay(100);
+    stepper.disableOutputs(); 
+    stepper.setCurrentPosition(0);
+    zeroSet = true;
 }
 
 void rotateDegrees(float degrees) {
-  long steps = round(degrees / degPerStep);
+  stepper.enableOutputs();
+  long steps = round((degrees * gearRatio) / (360/stepsPerRev));
   stepper.moveTo(steps);
-  while (stepper.distanceToGo() != 0) {
+  while (stepper.distanceToGo() != 0 && digitalRead(stopPin) != LOW) 
     stepper.run();
-  }
 }
