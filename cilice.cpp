@@ -39,13 +39,17 @@ void loop() {
     if (zeroSet) rotateDegrees(endPos); }
 
   if (digitalRead(stopPin) == LOW) {
-    stepper.stop();
-    while (stepper.distanceToGo() != 0) {
-      stepper.run(); }
-    delay(100);
-    stepper.disableOutputs(); 
-    stepper.setCurrentPosition(0);
-    zeroSet = true;
+    if (!zeroSet) {
+      stepper.setCurrentPosition(0);
+      stepper.enableOutputs();
+      zeroSet = true;
+    } else {
+      stepper.stop();
+      while (stepper.distanceToGo() != 0) {
+        stepper.run(); }
+      stepper.disableOutputs();
+      zeroSet = false;
+    }
   }
 }
 
