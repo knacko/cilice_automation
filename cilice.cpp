@@ -1,12 +1,15 @@
 #include <AccelStepper.h>
 #include <EasyButton.h>
+#include <ezLED.h>
 
 // Define the pins
-const int dirPin  = 2;
-const int stepPin = 3;
-const int forwPin = 4;
-const int revPin  = 5;
-const int stopPin = 6;
+const int dirPin   = 2;
+const int stepPin  = 3;
+const int forwPin  = 4;
+const int revPin   = 5;
+const int stopPin  = 6;
+const int greenPin = 7;
+const int redPin   = 8;
 
 // Set the steps
 const float stepsPerRev = 200.0;
@@ -27,6 +30,10 @@ EasyButton forwButton(forwPin);
 EasyButton revButton(revPin);
 EasyButton stopButton(stopPin);
 
+// Setup the LEDs
+ezLED greenLED(greenPin);
+ezLED redLED(redPin);
+
 void setup() {
 
   // Setup the stepper
@@ -42,6 +49,10 @@ void setup() {
   forwButton.onPressed(onForward);
   revButton.onPressed(onReverse);
   stopButton.onPressed(onStop);
+
+  // Start the LEDs
+  greenLED.turnOFF();
+  redLED.turnON();
 }
 
 void loop() {
@@ -49,6 +60,10 @@ void loop() {
   forwButton.read();
   revButton.read();
   stopButton.read();
+
+  // Poll the LED
+  greenLED.loop();
+  redLED.loop();
 }
 
 void onForward() {
@@ -69,6 +84,10 @@ void onStop() {
     stepper.disableOutputs();
     zeroSet = false;
   }
+  
+  // Toggle the LEDs
+  greenLED.toggle();
+  redLED.toggle();
 }
 
 void rotateDegrees(float degrees) {
